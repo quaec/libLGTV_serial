@@ -4,12 +4,12 @@
 import sys
 from libLGTV_serial import LGTV
 
-model = '42LK450'                    # Change this to your TV's model
+model = '47LD450'                    # Change this to your TV's model
 
 # Change this to the serial port you're using
 # On Linux it might look like '/dev/ttyS0'
 # On a Mac it might look like '/dev/tty.usbmodemfa2321'
-serial_port = "\\.\COM4"
+serial_port = "/dev/ttyUSB0"
 
 # Verify passed command
 if len(sys.argv) != 2: 
