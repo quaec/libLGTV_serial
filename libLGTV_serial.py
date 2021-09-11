@@ -56,6 +56,7 @@ actual_codes['PJ250_etc'].update({
 })
 actual_codes['LE5300_etc'] = common_codes.copy()
 actual_codes['LE5300_etc'].update({
+    # tv inputs
     'inputdtv'              : b"xb 00 00",
     'inputanalogantenna'    : b"xb 00 10",
     'inputanalogcable'      : b"xb 00 11",
@@ -67,7 +68,21 @@ actual_codes['LE5300_etc'].update({
     'inputhdmi2'            : b"xb 00 91",
     'inputhdmi3'            : b"xb 00 92",
     'inputhdmi4'            : b"xb 00 93",
-    'inputstatus'           : b"xb 00 ff"
+    'inputstatus'           : b"xb 00 ff",
+    # energy saving settings
+    'energysaving_off'      : b"jq 00 00",
+    'energysaving_minimum'  : b"jq 00 01",
+    'energysaving_medium'   : b"jq 00 02",
+    'energysaving_maximum'  : b"jq 00 03",
+    # Remote buttons
+    'r_up'                  : b"mc 00 40",
+    'r_down'                : b"mc 00 41",
+    'r_left'                : b"mc 00 07",
+    'r_right'               : b"mc 00 06",
+    'r_menu'                : b"mc 00 43",
+    'r_ok'                  : b"mc 00 44",
+    'r_back'                : b"mc 00 28",
+    'r_exit'                : b"mc 00 5b"
 })
 actual_codes['LC7D_etc'] = common_codes.copy()
 actual_codes['LC7D_etc'].update({
@@ -144,10 +159,11 @@ class LGTV:
         }
         self.debounces = {}
 
-    #this next line sets up the serial port to allow for communication
-    #and opens the serial port you may need to change
-    #ttyS0 to S1, S2, ect. The rest shouldn't need to change.
+    # this next line sets up the serial port to allow for communication
+    # and opens the serial port you may need to change
+    # ttyS0 to S1, S2, ect. The rest shouldn't need to change.
     def get_port(self):
+        #print("Setting up serial port get_port()") # Debug
         return serial.Serial(self.port, 9600, 8, serial.PARITY_NONE,
                 serial.STOPBITS_ONE, xonxoff=0, rtscts=0, timeout=1)
                                     
@@ -158,6 +174,7 @@ class LGTV:
                 ser = self.get_port()
             except serial.serialutil.SerialException:
                 time.sleep(0.07)
+                #print("Serial exception") # Debug
         return ser
     
     def status_code(self, code):
@@ -168,12 +185,13 @@ class LGTV:
             states = self.toggles.get(command)
             state_codes = (self.codes[states[0]], self.codes[states[1]])
             return self.toggle(self.status_code(state_codes[0]), state_codes)
-        elif command.endswith('up'):
-            key = command[:-2] + 'level'
-            return self.increment(self.status_code(self.codes[key]))
-        elif command.endswith('down'):
-            key = command[:-4] + 'level'
-            return self.decrement(self.status_code(self.codes[key]))
+        # ToDo: Decide what to do with this
+        #elif command.endswith('up'):
+        #    key = command[:-2] + 'level'
+        #    return self.increment(self.status_code(self.codes[key]))
+        #elif command.endswith('down'):
+        #    key = command[:-4] + 'level'
+        #    return self.decrement(self.status_code(self.codes[key]))
         else:
             return self.codes[command]
 
@@ -227,19 +245,31 @@ class LGTV:
 # ======= These are the methods you'll most probably want to use ==========
 
     def send(self, command):
-        if command in self.debounces:
-            wait_secs = self.debounces[command]
-            if self.connection == None:
-                self.connection = self.get_port()
-            lock_path = os.path.join(tempfile.gettempdir(), '.' + command + '_lock')
-            with FileLock(lock_path, timeout=0) as lock:
-                response = self.query(command)
-                time.sleep(wait_secs)
+        # Check if one or multiple commands were sent
+        if "," in command:
+            commands = command.split(',')
+            for cmd in commands:
+                cmd = cmd.strip()
+                if self.connection == None:
+                    self.connection = self.get_port_ensured()
+                response = self.query(cmd)
+                time.sleep(0.5)
         else:
-            if self.connection == None:
-                self.connection = self.get_port_ensured()
-            response = self.query(command)
+            if command in self.debounces:
+                wait_secs = self.debounces[command]
+                if self.connection == None:
+                    self.connection = self.get_port()
+                lock_path = os.path.join(tempfile.gettempdir(), '.' + command + '_lock')
+                with FileLock(lock_path, timeout=0) as lock:
+                    response = self.query(command)
+                    time.sleep(wait_secs)
+            else:
+                if self.connection == None:
+                    self.connection = self.get_port_ensured()
+                response = self.query(command)
+        #print("Closing serial connection ...") # Debug
         self.connection.close()
+        self.connection = None
         return response
             
     def available_commands(self):
