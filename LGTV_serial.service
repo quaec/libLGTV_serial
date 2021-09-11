@@ -1,0 +1,12 @@
+[Unit]
+Description=Receives commands for LGTV via mqtt
+After=multi-user.target
+
+[Service]
+Type=simple
+Environment=VIRTUAL_ENV="/path/to/venv"
+Environment=PATH="$VIRTUAL_ENV/bin:$PATH"
+ExecStart=/path/to/LGTV_service.py
+
+[Install]
+WantedBy=multi-user.target
