@@ -1,70 +1,41 @@
-# libLGTV_serial #
+# libLGTV_serial with MQTT support #
+Modified version of [libLGTV_serial from suan](https://github.com/suan/libLGTV_serial). Added service for listening for commands via MQTT and added various codes to "LE5300_etc".
+
+For more information take a look at the [README of the original library](https://github.com/suan/libLGTV_serial/blob/master/README.md).
+
 libLGTV_serial is a Python library to control LG TVs (or monitors with serial ports) via their serial (RS232) port. It aims to reduce the legwork needed to use this functionality on your TV - simply enter your TV model number and serial port and you're good to go!
 
-## Requirements ##
-- Python 2 or 3
-- The pyserial module
-    - Windows: http://pypi.python.org/pypi/pyserial
-    - Debian/Ubuntu Linux: `sudo apt-get install python-serial`
 
-## Supported Models/Operating Systems ##
-- All OSes are supported. If you run into trouble please let me know. 
-- A large number of LG TVs and monitors are supported -- a full list can be found on [the wiki](https://github.com/suan/libLGTV_serial/wiki/Supported-TV-Models). If your model isn't listed there, you can...
-  - Modify the code and add it yourself. The code is pretty simple and straightforward. Look up the codes from the Owner's Manual on the included CD-ROM or from [LG's Support Website](http://www.lg.com/us/support/index.jsp) (Look for the section titled "EXTERNAL CONTROL THROUGH RS-232C"). If you added your model this way I would really appreciate a pull request! =)
-  - OR
-  - Create a feature request in [the Issues page](https://github.com/suan/libLGTV_serial/issues) or if you don't want to create a github account you can email me at yeosuanaik@gmail.com
+## Requirements ##
+- Python 3 *(I've only tested it with Python 3)*
+- The [pyserial](https://pypi.org/project/pyserial/) module
+- [paho-mqtt](https://pypi.org/project/paho-mqtt/) for MQTT support
+
 
 ## Usage ##
-Currently I'm using the library through the LGTV.py script, which is invoked everytime certain buttons are pressed on my HDTV remote. The script is also a simple example of what the library can do and should be enough for most needs. (However, there's no reason you can't use the library in other ways, such as in a client-server configuration.)
 
-The following assumes you will just be using the LGTV.py script as I am:
+- Move `config_example.ini` to `config.ini` and configure your tv model, serial port and MQTT settings.
+- Create a python virtualenv
+- Install the required packages (inside your virtualenv) via `pip install -r requirements`
+- To use `LGTV_service.py` as a systemd service, copy or move `lgtv_serial.service` to `/etc/systemd/system/` and modify it to your needs.
 
-1. Download the files through the "ZIP" link near the top left of the page.
-2. Change the model to match that of your TV
-3. Change the serial port to match what your serial port is named. There is more info on this in the comments in the LGTV.py script.
-3. You can then run the available_commands.py script to view all available commands for your TV (make sure to set the correct TV model here too).
-4. To send one of those commands to the TV, all you have to do is invoke the script with the command, like this:
+Now start the systemd service or `LGTV_service.py`.
 
-```
-python LGTV.py --togglepower
-```
-### Toggles ###
-Toggles are commands that flip between 2 states, such as power on/off. LGTV.py contains an example of how you can add toggles you want to use, namely:
+You can now send commands to the MQTT topic that you've configured in the `config.ini` file. As the payload you use the commands that you can find at the top of `libLGTV_serial.py`.
+
+Examples for the payload:
 
 ```
-tv.add_toggle('input', 'inputrgbpc', 'inputdigitalcable')
-```
-From then on, when you pass in '--toggleinput' to the script, it will switch between the 'inputrgbpc' and 'inputdigitalcable' to send to the TV. The 'togglepower' and 'togglemute' toggles are already included for your convenience.
-### Debouncing ###
-Sometimes a single remote button press is detected as many. For example, EventGhost generates over 10 events every time the power button on my HDTV remote is pressed. libLGTV_serial takes care of this for you, but you have to specify which commands you're having trouble with. In my case, it looks like
-
-```
-tv.debounce('togglepower')
-```
-This will make sure that all 'togglepower' calls within 0.5 seconds of the first one are ignored. If you want to use a duration other than 0.5 seconds, include it as a 2nd argument, for example:
-
-```
-tv.debounce('togglepower', 0.7)
+energysaving_off
 ```
 
-### Getting TV Status ###
-Every command sent to the `send()` method that ends with 'status' or 'level' will return a 2-digit bytestring represnting the status of the item. For some items, you'll need to refer to your model's manual to know what the status code means. For example, if `send('powerstatus')` returns `b'01'`, that means that the TV is currently on.
+You're also able to send multiple commands inside the payload. They need to be separated with commas and are send to the tv with an interval of 0.5 seconds:
 
-### Serial/RS232 Tips ###
-Make sure you read your TV model's manual to see whether you need a "crossover/null-modem" or "straight-through" cable or adapter, and buy/use the correct one.
-
-## TODO/Bugs/Contributions ##
-I'll add more features as there's demand for them. Some that I forsee are:
-
-- Covering more of the available commands
-- Switching to a listening server model to improve performance
-
-Either create a feature request on the issues page or email me if theres stuff you'd like added.
-
-Same goes for any bugs you find, create an issue or email me.
-
-And contributions are very much welcome!
+```
+r_menu, r_up, r_left, r_ok, r_up, r_up, r_ok, r_exit
+```
 
 ## Credits ##
+- [suans original library](https://github.com/suan/libLGTV_serial)
 - [Jon Smith's blog post](http://www.thelazysysadmin.net/2009/05/rs232-control-lg-lcd-tv-mythtv/) which is the core of the library
 - [Evan Fosmark](http://www.evanfosmark.com/2009/01/cross-platform-file-locking-support-in-python/) for filelock.py
