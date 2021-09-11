@@ -4,9 +4,10 @@ After=multi-user.target
 
 [Service]
 Type=simple
-Environment=VIRTUAL_ENV="/path/to/venv"
-Environment=PATH="$VIRTUAL_ENV/bin:$PATH"
-ExecStart=/path/to/LGTV_service.py
+User=exampleuser
+Group=examplegroup
+WorkingDirectory=/path/to/libLGTV_serial
+ExecStart=/path/to/python/venv/bin/python LGTV_service.py
 
 [Install]
 WantedBy=multi-user.target
